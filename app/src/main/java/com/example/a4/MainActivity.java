@@ -38,13 +38,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        TextView pos = findViewById(R.id.positionCords);
-        pos.setText("Latitude: 0.0 Longitude: 0.0");
-
         // Create a new activity result launcher
         activityResultLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 this::onActivityResult);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
 
         Button button = findViewById(R.id.button);
         button.setOnClickListener(v -> {
@@ -60,9 +61,9 @@ public class MainActivity extends AppCompatActivity {
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-
             activityResultLauncher.launch(takePictureIntent);
         }
+        getCurrentLocation();
     }
 
     private void onActivityResult(ActivityResult result) {
@@ -73,8 +74,6 @@ public class MainActivity extends AppCompatActivity {
             ImageView imageView = findViewById(R.id.imageView);
             imageView.setImageBitmap(imageBitmap);
 
-            getCurrentLocation();
-
             TextView positionTextView = findViewById(R.id.positionCords);
             positionTextView.setText("Position: " + position);
         }
@@ -84,29 +83,25 @@ public class MainActivity extends AppCompatActivity {
         // Check if the location permission is granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            return;
         }
+
+        position = "Loading...";
+
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-        // Get the last known location
-        Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        if (lastKnownLocation != null) {
-            position = lastKnownLocation.getLatitude() + "," + lastKnownLocation.getLongitude();
-        }
+        LocationListener locationListener = new LocationListener() {
+            public void onLocationChanged(Location location) {
+                // Called when the location has changed
+                double latitude = location.getLatitude();
+                double longitude = location.getLongitude();
+                position = latitude + ", " + longitude;
+                TextView positionTextView = findViewById(R.id.positionCords);
+                positionTextView.setText("Position: " + position);
+                locationManager.removeUpdates(this); // Remove the listener after getting the location
+            }
+        };
 
-        // Request location updates
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                0, 0, new LocationListener() {
-                    @Override
-                    public void onLocationChanged(@NonNull Location location) {
-                        // Update the position string
-                        position = location.getLatitude() + "," + location.getLongitude();
-
-                        // Remove the location listener
-                        locationManager.removeUpdates(this);
-                    }
-                });
-
-        // Return null since the location is not available yet
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10, 0, locationListener);
     }
+
 }
