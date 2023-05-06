@@ -22,6 +22,7 @@ import android.provider.MediaStore;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -100,8 +101,18 @@ public class MainActivity extends AppCompatActivity {
                 locationManager.removeUpdates(this); // Remove the listener after getting the location
             }
         };
-
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10, 0, locationListener);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                dispatchTakePictureIntent();
+            }else{
+                Toast.makeText(getApplicationContext(), "permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 }
